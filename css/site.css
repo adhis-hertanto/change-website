@@ -74,9 +74,6 @@ html:not(.js) .pg-wa2__stage{--t1:1!important;--t2:1!important;--m:1!important}
   }
 }
 
-/* ---- Home / Experiences: logo card follows the active name ---- */
-.pg-exl__card{transition:opacity var(--duration-base) var(--ease-out-expo)}
-.pg-exl__card.is-empty{opacity:0}
 
 /* ---- Home / Insights carousel ---- */
 .pg-insh__viewport{touch-action:pan-y}

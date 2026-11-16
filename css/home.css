@@ -229,7 +229,7 @@ a.pg-exl__name{color:var(--gray-400);cursor:pointer}
 .pg-exl__name:hover,.pg-exl__name.is-active{color:var(--text-primary)}
 a.pg-exl__name:hover{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:.12em}
 a.pg-exl__name:focus-visible{outline:none;box-shadow:0 0 0 calc(2 * var(--px)) var(--gray-950),0 0 0 calc(4 * var(--px)) #fff}
-.pg-exl__card{position:absolute;z-index:2;right:var(--grid-margin-desktop);bottom:var(--space-16);width:calc(400 * var(--px));aspect-ratio:3 / 2;display:flex;align-items:center;justify-content:center;padding:var(--space-6);box-sizing:border-box;background:var(--gray-100);color:var(--gray-950);box-shadow:0 calc(24 * var(--px)) calc(60 * var(--px)) rgba(0,0,0,.4)}
+.pg-exl__card{position:absolute;z-index:2;right:var(--grid-margin-desktop);bottom:var(--space-16);width:calc(400 * var(--px));aspect-ratio:3 / 2;overflow:hidden;box-sizing:border-box;background:var(--gray-100);color:var(--gray-950);box-shadow:0 calc(24 * var(--px)) calc(60 * var(--px)) rgba(0,0,0,.4)}
 .pg-exl__logo{display:block;max-width:70%;max-height:40%;width:auto;height:auto;object-fit:contain}
 .pg-exl__mark{font-size:max(18px, calc(30 * var(--px)));font-weight:600;line-height:1.1;letter-spacing:-0.03em;text-align:center}
 @media (max-width:767px){.pg-exl__list{font-size:calc(36 * var(--px));line-height:1.12}.pg-exl__name{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pg-exl__comma{display:none}.pg-exl__card{right:var(--grid-margin-desktop);left:auto;bottom:var(--space-5);width:62%}.pg-exl__mark{font-size:max(14.7px, calc(20 * var(--px)))}}
@@ -396,3 +396,12 @@ a.pg-exl__name:focus-visible{outline:none;box-shadow:0 0 0 calc(2 * var(--px)) v
 @media (prefers-reduced-motion:reduce){[data-flip]{transition:none}}
 /* the Experiences grain fades in from the top edge so there is no seam against the section above when both are dark */
 .pg-exl > .pg-exl__grain{-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 calc(480 * var(--px)));mask-image:linear-gradient(180deg,transparent 0,#000 calc(480 * var(--px)))}
+/* Experiences logo card. Each logo is a slide; a new slide wipes in over the old one (js/home.js).
+   With a mouse the card follows the cursor over the client list; on touch it stays bottom right. */
+.pg-exl__slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:var(--space-6);box-sizing:border-box;background:var(--gray-100)}
+.pg-exl__slide > *{flex:none}
+.pg-exl__card.is-follow{left:0;top:0;right:auto;bottom:auto;width:calc(320 * var(--px));pointer-events:none;translate:var(--cx,0px) var(--cy,0px);opacity:0;scale:.86;transform-origin:0 0;transition:opacity var(--duration-base) var(--ease-out-expo),scale var(--duration-slow) var(--ease-out-expo);will-change:translate}
+.pg-exl__card.is-follow.is-on{opacity:1;scale:1}
+@media (prefers-reduced-motion:reduce){.pg-exl__card.is-follow{transition:none;scale:1}}
+/* on touch the card stays bottom right: leave room under the list so it does not cover the last names */
+@media (max-width:767px){.pg-exl__list:has(+ .pg-exl__card:not(.is-follow)){padding-bottom:calc(170 * var(--px))}}

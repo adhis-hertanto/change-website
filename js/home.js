@@ -2,7 +2,7 @@
    1. Hero fades on scroll, Who We Are scroll sequence (3D logo dissolves in, shader background)
    2. What We Do stacked cards (tint of the cards behind)
    3. Clients sector drum
-   4. Experiences logo card
+   4. Experiences logo card (follows the cursor, slider-mask logo change, auto cycle)
    5. Insights carousel
    6. Scroll theme switch (sections invert between light and dark) */
 (function () {
@@ -270,19 +270,58 @@
     if (!list || !card) return;
     var names = $$('.pg-exl__name', list);
     function label(el) { return (el.firstChild && el.firstChild.nodeType === 3 ? el.firstChild.nodeValue : el.textContent).trim(); }
+    var shown = $('.pg-exl__name.is-active', list), WIPE = 650, EASE = 'cubic-bezier(.65,0,.35,1)';
+    function slide(el) {
+      var logo = el.getAttribute('data-logo'), name = label(el), s = document.createElement('div'), c;
+      s.className = 'pg-exl__slide';
+      if (logo) { c = document.createElement('img'); c.className = 'pg-exl__logo'; c.src = logo; c.alt = name; }
+      else { c = document.createElement('span'); c.className = 'pg-exl__mark'; c.textContent = name; }
+      s.appendChild(c);
+      return s;
+    }
+    /* slider mask: the new logo's slide wipes in over the old one, from the right when moving
+       forward through the list and from the left when moving back, while both logos travel */
     function show(el) {
+      if (el === shown) return;
+      var dir = names.indexOf(el) >= names.indexOf(shown) ? 1 : -1; shown = el;
       names.forEach(function (n) { n.classList.toggle('is-active', n === el); });
-      var logo = el.getAttribute('data-logo'), name = label(el);
-      card.innerHTML = '';
-      if (logo) {
-        var im = document.createElement('img');
-        im.className = 'pg-exl__logo'; im.src = logo; im.alt = name;
-        card.appendChild(im);
-      } else {
-        var sp = document.createElement('span');
-        sp.className = 'pg-exl__mark'; sp.textContent = name;
-        card.appendChild(sp);
-      }
+      var old = card.lastElementChild, next = slide(el);
+      card.appendChild(next);
+      function tidy() { while (card.firstElementChild && card.firstElementChild !== next) card.removeChild(card.firstElementChild); }
+      if (rm || !next.animate || !old) { tidy(); return; }
+      var from = dir > 0 ? 'inset(0 0 0 100%)' : 'inset(0 100% 0 0)';
+      var o = { duration: WIPE, easing: EASE, fill: 'both' };
+      next.animate([{ clipPath: from }, { clipPath: 'inset(0 0 0 0)' }], o).onfinish = function () { if (card.lastElementChild === next) tidy(); };
+      next.firstChild.animate([{ transform: 'translateX(' + (dir * 35) + '%)' }, { transform: 'none' }], o);
+      if (old.firstChild) old.firstChild.animate([{ transform: 'none' }, { transform: 'translateX(' + (-dir * 35) + '%)' }], o);
+    }
+
+    /* with a mouse, the card follows the cursor while it is over the client list */
+    var sec = card.parentNode;
+    if (window.matchMedia('(hover:hover) and (pointer:fine)').matches) {
+      card.classList.add('is-follow');
+      var px = 0, py = 0, cx = 0, cy = 0, on = false, fr = 0, placed = false;
+      var last = 0;
+      var place = function (now) {
+        fr = 0;
+        /* ease towards the cursor by elapsed time, so the follow feels the same at any frame rate */
+        var k = rm || !last ? (rm ? 1 : .16) : 1 - Math.exp(-(now - last) / 90); last = now;
+        cx += (px - cx) * k; cy += (py - cy) * k;
+        card.style.setProperty('--cx', cx.toFixed(1) + 'px'); card.style.setProperty('--cy', cy.toFixed(1) + 'px');
+        if (on && (Math.abs(px - cx) > .3 || Math.abs(py - cy) > .3)) fr = requestAnimationFrame(place); else last = 0;
+      };
+      var aim = function (e) {
+        var r = sec.getBoundingClientRect(), w = card.offsetWidth, h = card.offsetHeight, gap = w * .08;
+        /* sit below and to the right of the cursor, flipping to the left near the right edge, and stay inside the section */
+        var x = e.clientX - r.left + gap, y = e.clientY - r.top + gap;
+        if (x + w > r.width - gap) x = e.clientX - r.left - gap - w;
+        px = clamp(x, gap, Math.max(gap, r.width - w - gap)); py = clamp(y, gap, Math.max(gap, r.height - h - gap));
+        if (!placed) { placed = true; cx = px; cy = py; }
+        if (!fr) fr = requestAnimationFrame(place);
+      };
+      list.addEventListener('pointerenter', function (e) { if (e.pointerType !== 'mouse') return; on = true; placed = false; aim(e); card.classList.add('is-on'); });
+      list.addEventListener('pointermove', function (e) { if (on) aim(e); });
+      list.addEventListener('pointerleave', function () { on = false; card.classList.remove('is-on'); });
     }
     /* the highlight steps through the clients one after the other; hovering or focusing a name
        takes over, and the sequence carries on from that name afterwards */
