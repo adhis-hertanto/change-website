@@ -405,3 +405,10 @@ a.pg-exl__name:focus-visible{outline:none;box-shadow:0 0 0 calc(2 * var(--px)) v
 @media (prefers-reduced-motion:reduce){.pg-exl__card.is-follow{transition:none;scale:1}}
 /* on touch the card stays bottom right: leave room under the list so it does not cover the last names */
 @media (max-width:767px){.pg-exl__list:has(+ .pg-exl__card:not(.is-follow)){padding-bottom:calc(170 * var(--px))}}
+/* Who We Are fades into its neighbours. The fades belong to the section, not the pinned stage, so the
+   top one only covers the stage as it arrives and the bottom one as it leaves. The top fade starts from
+   the hero's colour; the bottom fade follows the next section's colour through the scroll theme switch. */
+.pg-wa2__fade{position:absolute;left:0;right:0;z-index:4;height:55svh;pointer-events:none}
+.pg-wa2__fade--in{top:0;background:linear-gradient(180deg,var(--gray-950) 0%,rgba(3,7,18,.86) 22%,rgba(3,7,18,.55) 48%,rgba(3,7,18,.2) 76%,rgba(3,7,18,0) 100%)}
+.pg-wa2__fade--out{bottom:0;background:linear-gradient(180deg,transparent 0%,color-mix(in srgb,var(--surface) 20%,transparent) 24%,color-mix(in srgb,var(--surface) 55%,transparent) 52%,color-mix(in srgb,var(--surface) 86%,transparent) 78%,var(--surface) 100%)}
+html:not(.js) .pg-wa2__fade{height:30svh}

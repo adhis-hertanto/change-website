@@ -71,6 +71,85 @@
     fit();
   })();
 
+  /* ---------- Shader gradient backgrounds ----------
+     <canvas data-shader-bg data-colors="#a,#b,#c" data-shade="0-1"> draws a slow, flowing three-colour
+     gradient with film grain (the look of a noise-displaced sphere seen from very close). data-shade
+     darkens it for sections with light text on top. It renders at reduced resolution, at 30 fps, and
+     only while its section is on screen; with reduced motion it draws a single still frame. The CSS
+     background underneath stays as the fallback when WebGL is unavailable. */
+  (function shaderBackgrounds() {
+    var VS = 'attribute vec2 p;varying vec2 uv;void main(){uv=p*.5+.5;gl_Position=vec4(p,0.,1.);}';
+    var FS = '#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\n' +
+      'varying vec2 uv;uniform float time,asp,shade,seed;uniform vec3 c1,c2,c3;\n' +
+      'float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\n' +
+      'float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*f*(f*(f*6.-15.)+10.);return mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+vec2(1.,1.)),f.x),f.y);}\n' +
+      'float fbm(vec2 p){return n(p)*.62+n(p*2.03+7.1)*.27+n(p*4.01+3.3)*.11;}\n' +
+      /* height field: big slow swells folded by a domain warp, like the displaced surface */
+      'float field(vec2 p,float t){\n' +
+      ' vec2 w=vec2(fbm(p*.55+vec2(t*.21,-t*.13)+seed),fbm(p*.55+vec2(-t*.17,t*.19)+seed+5.2));\n' +
+      ' return fbm(p*.8+(w-.5)*2.4+vec2(t*.07,t*.05));}\n' +
+      'void main(){\n' +
+      ' vec2 p=vec2(uv.x*asp,uv.y)*1.15;float t=time*.3;\n' +
+      ' float f=field(p,t);float g=field(p*.9+vec2(4.7,1.3),t*.85+11.);\n' +
+      ' vec3 col=mix(c1,c2,smoothstep(.34,.66,f));\n' +
+      ' col=mix(col,c3,smoothstep(.38,.72,g));\n' +
+      /* soft light from the slope of the field: a broad sheen and gentle shadowing, as on a glossy surface */
+      ' float e=.012;vec2 gr=vec2(field(p+vec2(e,0.),t)-f,field(p+vec2(0.,e),t)-f)/e;\n' +
+      ' vec3 nn=normalize(vec3(-gr*.55,1.));float lit=dot(nn,normalize(vec3(-.45,.6,.75)));\n' +
+      ' col*=.86+.3*lit;col+=vec3(1.)*pow(clamp(lit,0.,1.),14.)*.16;\n' +
+      ' col*=.8+.25*shade;\n' +
+      /* shade: pull towards a deep version of the colour so light text and the glass logo read on top */
+      ' col=mix(col,col*col*.55+vec3(.008,.014,.03),shade);col*=1.-.55*shade;\n' +
+      ' col+=(h(gl_FragCoord.xy+fract(time)*61.)-.5)*mix(.085,.05,shade);\n' +
+      ' gl_FragColor=vec4(clamp(col,0.,1.),1.);\n}';
+    function rgb(hex) {
+      var m = /^#?([0-9a-f]{6})$/i.exec((hex || '').trim()); if (!m) return [0.5, 0.5, 0.5];
+      var v = parseInt(m[1], 16); return [(v >> 16 & 255) / 255, (v >> 8 & 255) / 255, (v & 255) / 255];
+    }
+    $$('canvas[data-shader-bg]').forEach(function (cv, idx) {
+      var gl, U = {};
+      try {
+        gl = cv.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' });
+        if (!gl) return;
+        var mk = function (type, src) { var sh = gl.createShader(type); gl.shaderSource(sh, src); gl.compileShader(sh); return sh; };
+        var pr = gl.createProgram();
+        gl.attachShader(pr, mk(gl.VERTEX_SHADER, VS)); gl.attachShader(pr, mk(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(pr);
+        if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return;
+        gl.useProgram(pr);
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+        var loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+        ['time', 'asp', 'shade', 'seed', 'c1', 'c2', 'c3'].forEach(function (k) { U[k] = gl.getUniformLocation(pr, k); });
+      } catch (e) { return; }
+      var cols = (cv.getAttribute('data-colors') || '#73bfc4,#ff810a,#8da0ce').split(',').map(rgb);
+      gl.uniform3fv(U.c1, cols[0]); gl.uniform3fv(U.c2, cols[1] || cols[0]); gl.uniform3fv(U.c3, cols[2] || cols[0]);
+      gl.uniform1f(U.shade, Math.min(1, Math.max(0, parseFloat(cv.getAttribute('data-shade')) || 0)));
+      gl.uniform1f(U.seed, idx * 3.7);
+      var seen = false, raf = 0, last = 0;
+      function draw(now) {
+        var w = Math.max(2, Math.round(cv.clientWidth / 2)), hgt = Math.max(2, Math.round(cv.clientHeight / 2));
+        if (cv.width !== w || cv.height !== hgt) { cv.width = w; cv.height = hgt; gl.viewport(0, 0, w, hgt); }
+        gl.uniform1f(U.asp, w / hgt);
+        gl.uniform1f(U.time, rm ? 12 : now / 1000);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        cv.classList.add('is-on');
+      }
+      function loop(now) {
+        raf = 0;
+        if (!seen || document.hidden) return;
+        if (now - last > 32) { last = now; draw(now); }
+        if (!rm) raf = requestAnimationFrame(loop);
+      }
+      function kick() { if (!raf) raf = requestAnimationFrame(loop); }
+      var host = cv.closest('section') || cv;
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (es) { seen = es[0].isIntersecting; if (seen) kick(); }, { rootMargin: '200px 0px' }).observe(host);
+      } else { seen = true; kick(); }
+      window.addEventListener('resize', function () { if (seen) { last = 0; kick(); } });
+      document.addEventListener('visibilitychange', function () { if (!document.hidden && seen) kick(); });
+    });
+  })();
+
   /* ---------- Contact drawer ---------- */
   var drawer = $('.dr'), lastFocus = null;
   function focusables() {

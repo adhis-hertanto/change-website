@@ -1,5 +1,5 @@
 /* Change website: Home page behaviour.
-   1. Hero fades on scroll, Who We Are scroll sequence (3D logo dissolves in, shader background)
+   1. Hero fades on scroll, Who We Are scroll sequence (3D logo dissolves in; the gradient background is in js/site.js)
    2. What We Do stacked cards (tint of the cards behind)
    3. Clients sector drum
    4. Experiences logo card (follows the cursor, slider-mask logo change, auto cycle)
@@ -20,7 +20,6 @@
     if (!hero || !wa) return;
     var heroSt = $('.pg-hs__stage', hero), st = $('.pg-wa2__stage', wa);
     var glass = $('.pg-wa2__glass', st), cv = $('.pg-wa2__gl', glass), img = $('.pg-wa2__img', glass);
-    var bgc = $('.pg-wa2__bg', st);
 
     var ease = function (t) { return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
     var sm = function (a, b, p) { return ease(clamp((p - a) / (b - a), 0, 1)); };
@@ -50,15 +49,6 @@
       ' float rn=fbm(q*2.6+vec2(3.1,time*.06));\n' +
       ' float ra=smoothstep(rn-.22,rn+.22,rv*1.5-.25);\n' +
       ' gl_FragColor=vec4(col,max(a,edge*min(1.,L*6.)))*ra;\n}';
-    /* dark shader background */
-    var FS_BG = FS_HEAD + 'varying vec2 uv;uniform float time,asp;\n' + NOISE +
-      'void main(){\n' +
-      ' vec2 p=vec2(uv.x*asp,uv.y)*1.4;float t=time*.035;\n' +
-      ' float f=fbm(p+vec2(t,-t*.6)+1.2*fbm(p*1.2+vec2(-t,t*.8)));\n' +
-      ' float g=smoothstep(.3,.9,f);float v=pow(clamp(1.-uv.y*1.15,0.,1.),1.6);\n' +
-      ' vec3 col=vec3(.012,.027,.07)+vec3(.2,.22,.26)*(.35+.65*g)*v;\n' +
-      ' col+=(h(gl_FragCoord.xy+time)-.5)*.02;\n' +
-      ' gl_FragColor=vec4(col,1.);\n}';
     function prog(gl, fs) {
       var mk = function (type, src) { var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
       var pr = gl.createProgram();
@@ -72,24 +62,9 @@
       return pr;
     }
 
-    var mVal = 0, mTarget = 0, mLast = 0, REVEAL = 1.8, inView = false, hover = false, amt = 0, mx = .5, my = .5, tx = .5, ty = .5, raf = 0, lastBg = 0;
-    var G = null, B = null;
+    var mVal = 0, mTarget = 0, mLast = 0, REVEAL = 1.8, inView = false, hover = false, amt = 0, mx = .5, my = .5, tx = .5, ty = .5, raf = 0;
+    var G = null;
 
-    /* shader background (falls back to the CSS gradients if WebGL is unavailable) */
-    try {
-      var bgl = bgc.getContext('webgl', { antialias: false });
-      var bpr = bgl && prog(bgl, FS_BG);
-      if (bpr) B = { gl: bgl, tm: bgl.getUniformLocation(bpr, 'time'), as: bgl.getUniformLocation(bpr, 'asp') };
-    } catch (e) { B = null; }
-    function drawBg(t) {
-      if (!B) return;
-      var w = Math.max(2, Math.round(st.clientWidth / 2)), h = Math.max(2, Math.round(st.clientHeight / 2));
-      if (bgc.width !== w || bgc.height !== h) { bgc.width = w; bgc.height = h; B.gl.viewport(0, 0, w, h); }
-      B.gl.uniform1f(B.as, w / h);
-      B.gl.uniform1f(B.tm, rm ? 3 : t);
-      B.gl.drawArrays(B.gl.TRIANGLE_STRIP, 0, 4);
-      bgc.classList.add('is-on');
-    }
 
     function sizeGlass() {
       if (!G) return;
@@ -139,7 +114,6 @@
       }
       mx += (tx - mx) * .2; my += (ty - my) * .2;
       amt += ((hover ? 1 : 0) - amt) * (hover ? .08 : .03);
-      if (inView && !rm && now - lastBg > 33) { lastBg = now; drawBg(t); }
       if (mVal > 0) drawGlass(t);
       if (inView && !rm) raf = requestAnimationFrame(frame);
       else if (mVal > 0 && (hover || amt > .004)) raf = requestAnimationFrame(frame);

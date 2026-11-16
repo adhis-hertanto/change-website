@@ -29,7 +29,7 @@ css/change.css            Design system: tokens, type roles, components
 css/<page>.css            Page styles, exported from each board
 css/contact-drawer.css    Contact drawer and form
 css/site.css              Live-site layer: viewport heights, sticky sections, drawer, page transition
-js/site.js                Shared: nav menu (sticky menu button), footer reveal, contact drawer and form, reveals, page transition
+js/site.js                Shared: nav menu (sticky menu button), footer reveal, shader gradient backgrounds, contact drawer and form, reveals, page transition
 js/home.js                Hero and Who We Are sequence (3D logo distort fade-in), pillar stack, sector drum, client highlight cycle and cursor-following logo card, Insights carousel, scroll theme switch
 js/what-we-do.js          Insights category chips
 js/clients.js             Client filter bar and panels
@@ -55,6 +55,10 @@ When adding styles, use the board value with `var(--px)` rather than a plain `px
 ## Scroll theme switch (Home)
 
 Sections between the hero and the footer invert between light and dark as you scroll. Each section marked `data-theme-stop="light|dark"` names its own theme; the section under the reading line (60% down the viewport) decides the theme, and every section marked `data-flip` takes it. `js/home.js` sets `data-theme`, and the colour tokens registered at the end of `css/home.css` do the transition. To add a section, give it both attributes and use the theme tokens (`--surface`, `--text-primary`, `--text-secondary`, `--border`) instead of fixed colours.
+
+## Shader gradient backgrounds
+
+Who We Are (Home) and the footer (every page) have an animated three-colour gradient with film grain, drawn by `js/site.js` on any `<canvas data-shader-bg>`. Set the colours with `data-colors="#73bfc4,#ff810a,#8da0ce"` and darken it for light text with `data-shade` (0 to 1; Who We Are uses 0.42). The CSS gradient behind each canvas remains as the fallback when WebGL is unavailable.
 
 ## Still to supply
 
