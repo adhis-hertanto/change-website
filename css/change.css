@@ -8,7 +8,8 @@
    calc(D * var(--px-d) + M * var(--px-m)) is D on the desktop board and M on the mobile board.
    Small type has a readable floor: max(floor, calc(N * var(--px))). */
 :root {
-  --px: calc((100cqw - 128px) / 1312);
+  /* width-driven, with no upper limit; the height term only stops a very wide, short window (ultrawide) from outgrowing one screen */
+  --px: min(calc((100cqw - 128px) / 1312), calc(100svh / 620));
   --px-d: var(--px);
   --px-m: 0px;
 }
@@ -133,7 +134,6 @@
   --bp-mobile: 390px;      /* mobile board width */
   --bp-switch: 768px;      /* below: mobile board, scaled. At and above: desktop board, scaled */
   --bp-desktop: 1440px;    /* desktop board width */
-  --bp-max: 1920px;        /* the desktop board stops growing here and centres */
 
   /* grid: side margins are fixed pixels at every width; gutters scale with the board */
   --grid-cols-desktop: 12;

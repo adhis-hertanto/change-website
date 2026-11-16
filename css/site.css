@@ -4,8 +4,7 @@
 
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 body{margin:0;background:#030712}
-/* The desktop board scales up to 1920 wide, then stops growing and centres */
-.chg-root{width:100%;max-width:1920px;margin-inline:auto;overflow-x:clip;background:var(--gray-950);font-family:var(--font-sans)}
+.chg-root{width:100%;overflow-x:clip;background:var(--gray-950);font-family:var(--font-sans)}
 main{display:block;background:var(--surface);color:var(--text-primary)}
 img{max-width:100%}
 .skip{position:absolute;left:8px;top:-60px;z-index:200;padding:12px 16px;background:#fff;color:#030712;font:500 16px/1 var(--font-sans)}

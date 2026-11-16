@@ -46,7 +46,7 @@ The site scales with the viewport instead of stepping through breakpoints.
 - Every size, gap and type size is written as `calc(N * var(--px))`, where `N` is the pixel value on the design board. `--px` (defined at the top of `css/change.css`) is exactly 1px when the viewport matches the board and grows or shrinks with the viewport everywhere else.
 - Side margins do not scale. They stay at the board values (64px on desktop, 20px on mobile, plus the few sections with their own margin), and `--px` is measured from the content width between them.
 - There is one layout switch, at 768px. From 768px up the 1440 desktop board is used; below it the 390 mobile board is used.
-- The desktop board stops growing at 1920px wide and centres on larger screens.
+- There is no upper limit: the desktop board keeps scaling on wide monitors. Only a very wide, short window (an ultrawide) is held back slightly so one screen of content still fits its height.
 - Small type has a readable floor, written as `max(floor, calc(N * var(--px)))`, so body copy and labels do not shrink below roughly 14px and 12px. Form fields stay at 16px or larger.
 - A value that differs between the two boards is written once as `calc(D * var(--px-d) + M * var(--px-m))`: `D` on desktop, `M` on mobile.
 
