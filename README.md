@@ -30,7 +30,7 @@ css/<page>.css            Page styles, exported from each board
 css/contact-drawer.css    Contact drawer and form
 css/site.css              Live-site layer: viewport heights, sticky sections, drawer, page transition
 js/site.js                Shared: nav menu, contact drawer and form, reveals, page transition
-js/home.js                Hero and Who We Are sequence (3D logo distort fade-in), pillar stack, sector drum, client highlight cycle, Insights carousel, scroll theme switch
+js/home.js                Hero and Who We Are sequence (3D logo distort fade-in), pillar stack, sector drum, client highlight cycle and cursor-following logo card, Insights carousel, scroll theme switch
 js/what-we-do.js          Insights category chips
 js/clients.js             Client filter bar and panels
 js/experience-article.js  Article anchor list and share buttons
