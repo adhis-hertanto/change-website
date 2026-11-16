@@ -175,13 +175,15 @@
     if (cards.length < 2) return;
     function update() {
       var sticky = getComputedStyle(cards[0]).position === 'sticky';
+      /* the cards pin 88 design px apart; that step scales with the viewport, so read it back */
+      var stepPx = sticky ? (parseFloat(getComputedStyle(cards[1]).top) - parseFloat(getComputedStyle(cards[0]).top)) || 88 : 88;
       cards.forEach(function (c, i) {
         var behind = 0;
         if (sticky) {
           var r = c.getBoundingClientRect();
           for (var j = i + 1; j < cards.length; j++) {
             /* a later card covers this one once it has slid up over most of its body */
-            if (cards[j].getBoundingClientRect().top < r.top + 88 + 40) behind++;
+            if (cards[j].getBoundingClientRect().top < r.top + stepPx * 128 / 88) behind++;
           }
         }
         if (behind) c.setAttribute('data-behind', Math.min(2, behind)); else c.removeAttribute('data-behind');
