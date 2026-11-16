@@ -120,6 +120,35 @@ html.is-contact-open{overflow:hidden}
   .is-arrived .curtain{transform:translateY(-100%);transition:transform var(--duration-slower) var(--ease-in-out)}
 }
 
+/* ---- Footer: one viewport tall, revealed from under the page ----
+   The section is a window in the page flow; its contents (.pg-contact__pin) are fixed to the bottom
+   of the viewport and clipped to that window, so the page above slides away to uncover the footer.
+   js/site.js adds .is-reveal only while the footer's content fits in one viewport; otherwise the
+   footer scrolls normally. The space above the white card is twice the space at its sides and bottom. */
+.pg-contact,.pg-contact--foot{display:flex;min-height:100svh;padding:0;overflow:visible;isolation:auto;background:none}
+.pg-contact__pin{--foot-gap:24px;position:relative;isolation:isolate;overflow:hidden;flex:1;display:flex;flex-direction:column;box-sizing:border-box;min-height:100svh;padding:calc(2 * var(--foot-gap)) var(--foot-gap) var(--foot-gap);background:var(--gray-200)}
+.pg-contact__card{flex:1;align-content:space-between}
+.pg-contact__foot,.pg-contact--foot .pg-contact__foot{margin-top:var(--space-16)}
+@media (max-width:767px){.pg-contact__pin{--foot-gap:12px}}
+.pg-contact.is-reveal{height:100svh;min-height:0;clip-path:inset(0)}
+.pg-contact.is-reveal .pg-contact__pin{position:fixed;left:0;right:0;bottom:0;height:100svh;min-height:0}
+
+/* ---- Menu button: stays at the top of the viewport while the page scrolls ----
+   js/site.js moves the button and its panel into .pg-menu-dock (fixed) and leaves .pg-nav__slot in
+   the nav to hold the space; the dock is lined up with the slot. */
+.pg-nav__slot{justify-self:center;min-width:calc(360 * var(--px));height:calc(56 * var(--px))}
+.pg-menu-dock{position:fixed;z-index:70;left:var(--dock-left,50%);top:var(--dock-top,0px);width:var(--dock-width,auto);color:var(--text-on-dark)}
+.pg-menu-dock .pg-nav__menu{width:100%;min-width:0;margin:0}
+@media (min-width:768px){
+  .pg-menu-dock .pg-nav__panel{width:min(max(320px,calc(440 * var(--px))),calc(100cqw - 2 * var(--grid-margin-desktop)))}
+}
+@media (max-width:767px){
+  .pg-nav__slot{min-width:0;width:100%;height:calc(48 * var(--px))}
+  .pg-menu-dock .pg-nav__panel{left:calc(-1 * var(--dock-left,0px));right:auto;width:100cqw}
+  .pg-menu-dock{transition:opacity var(--duration-base) var(--ease-out-expo),translate var(--duration-base) var(--ease-out-expo),visibility 0s}
+  .pg-menu-dock.is-away{opacity:0;translate:0 -120%;visibility:hidden;transition:opacity var(--duration-base) var(--ease-out-expo),translate var(--duration-base) var(--ease-out-expo),visibility 0s linear var(--duration-base)}
+}
+
 /* ---- Footer links ---- */
 .pg-contact__col a,.pg-contact__legal a{text-decoration-thickness:1px;text-underline-offset:calc(4 * var(--px));transition:text-decoration-color var(--duration-fast)}
 .pg-contact__col a:hover,.pg-contact__legal a:hover{text-decoration:underline}

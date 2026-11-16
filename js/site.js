@@ -22,6 +22,55 @@
     panel.addEventListener('click', function (e) { if (e.target.closest('a')) setMenu(false); });
   }
 
+  /* ---------- Sticky menu button ----------
+     The button and its panel move into a fixed dock so they stay at the top of the viewport; a slot
+     stays in the nav to hold the space, and the dock is lined up with it. */
+  (function stickyMenu() {
+    var nav = $('.pg-nav'), host = $('.chg-root');
+    if (!menu || !panel || !nav || !host) return;
+    var slot = document.createElement('span'); slot.className = 'pg-nav__slot'; slot.setAttribute('aria-hidden', 'true');
+    var dock = document.createElement('nav'); dock.className = 'pg-menu-dock';
+    dock.setAttribute('aria-label', 'Menu'); dock.setAttribute('data-theme', 'dark');
+    nav.insertBefore(slot, menu);
+    dock.appendChild(menu); dock.appendChild(panel);
+    host.insertBefore(dock, host.firstChild);
+    function line() {
+      var r = slot.getBoundingClientRect(), h = host.getBoundingClientRect();
+      dock.style.setProperty('--dock-left', (r.left - h.left) + 'px');
+      dock.style.setProperty('--dock-width', r.width + 'px');
+      /* where the slot sits at the top of the page, whatever the current scroll position */
+      dock.style.setProperty('--dock-top', Math.max(0, r.top + (window.scrollY || window.pageYOffset)) + 'px');
+    }
+    /* on the mobile layout the button would sit on top of the footer heading, so it steps aside
+       once the footer reaches it (css/site.css only acts on .is-away below 768) */
+    var foot = $('.pg-contact'), t = 0;
+    function away() {
+      t = 0;
+      if (!foot) return;
+      var open = menu.getAttribute('aria-expanded') === 'true';
+      dock.classList.toggle('is-away', !open && foot.getBoundingClientRect().top < dock.getBoundingClientRect().bottom);
+    }
+    window.addEventListener('scroll', function () { if (!t) t = requestAnimationFrame(away); }, { passive: true });
+    window.addEventListener('resize', function () { line(); away(); });
+    window.addEventListener('load', function () { line(); away(); });
+    line(); away();
+  })();
+
+  /* ---------- Footer reveal ----------
+     Pin the footer under the page only while its content fits in one viewport. */
+  (function footerReveal() {
+    var foot = $('.pg-contact'), pin = foot && $('.pg-contact__pin', foot);
+    if (!pin) return;
+    function fit() {
+      /* measure in normal flow: there the footer is at least one viewport tall, and taller only if its content needs it */
+      foot.classList.remove('is-reveal');
+      if (pin.offsetHeight <= window.innerHeight + 1) foot.classList.add('is-reveal');
+    }
+    window.addEventListener('resize', fit);
+    window.addEventListener('load', fit);
+    fit();
+  })();
+
   /* ---------- Contact drawer ---------- */
   var drawer = $('.dr'), lastFocus = null;
   function focusables() {
