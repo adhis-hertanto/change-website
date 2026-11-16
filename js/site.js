@@ -41,14 +41,14 @@
       /* where the slot sits at the top of the page, whatever the current scroll position */
       dock.style.setProperty('--dock-top', Math.max(0, r.top + (window.scrollY || window.pageYOffset)) + 'px');
     }
-    /* on the mobile layout the button would sit on top of the footer heading, so it steps aside
-       once the footer reaches it (css/site.css only acts on .is-away below 768) */
-    var foot = $('.pg-contact'), t = 0;
+    /* the footer leaves room for the button above its card. If the footer is taller than the
+       viewport and scrolls, the card can still reach the button, which then steps aside. */
+    var card = $('.pg-contact__card'), t = 0;
     function away() {
       t = 0;
-      if (!foot) return;
+      if (!card) return;
       var open = menu.getAttribute('aria-expanded') === 'true';
-      dock.classList.toggle('is-away', !open && foot.getBoundingClientRect().top < dock.getBoundingClientRect().bottom);
+      dock.classList.toggle('is-away', !open && card.getBoundingClientRect().top < dock.offsetTop + menu.offsetHeight - 1); /* offsets ignore the step-aside shift */
     }
     window.addEventListener('scroll', function () { if (!t) t = requestAnimationFrame(away); }, { passive: true });
     window.addEventListener('resize', function () { line(); away(); });
