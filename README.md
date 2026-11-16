@@ -30,7 +30,7 @@ css/<page>.css            Page styles, exported from each board
 css/contact-drawer.css    Contact drawer and form
 css/site.css              Live-site layer: viewport heights, sticky sections, drawer, page transition
 js/site.js                Shared: nav menu, contact drawer and form, reveals, page transition
-js/home.js                Hero and Who We Are scroll sequence, pillar stack, sector drum, logo card, Insights carousel
+js/home.js                Hero and Who We Are sequence (3D logo distort fade-in), pillar stack, sector drum, client highlight cycle, Insights carousel, scroll theme switch
 js/what-we-do.js          Insights category chips
 js/clients.js             Client filter bar and panels
 js/experience-article.js  Article anchor list and share buttons
@@ -51,6 +51,10 @@ The site scales with the viewport instead of stepping through breakpoints.
 - A value that differs between the two boards is written once as `calc(D * var(--px-d) + M * var(--px-m))`: `D` on desktop, `M` on mobile.
 
 When adding styles, use the board value with `var(--px)` rather than a plain `px` value. Keep plain `px` only for side margins and hairlines.
+
+## Scroll theme switch (Home)
+
+Sections between the hero and the footer invert between light and dark as you scroll. Each section marked `data-theme-stop="light|dark"` names its own theme; the section under the reading line (60% down the viewport) decides the theme, and every section marked `data-flip` takes it. `js/home.js` sets `data-theme`, and the colour tokens registered at the end of `css/home.css` do the transition. To add a section, give it both attributes and use the theme tokens (`--surface`, `--text-primary`, `--text-secondary`, `--border`) instead of fixed colours.
 
 ## Still to supply
 

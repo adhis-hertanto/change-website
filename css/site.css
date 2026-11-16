@@ -27,7 +27,7 @@ img{max-width:100%}
   .pg-wa2{--u:min(1.077cqw,.4975svh)}
 }
 html:not(.js) .pg-wa2--proto{height:auto}
-html:not(.js) .pg-wa2__stage{--t1:1!important;--t2:1!important;--d:1!important;--dw:1!important;--m:1!important}
+html:not(.js) .pg-wa2__stage{--t1:1!important;--t2:1!important;--m:1!important}
 
 /* ---- load reveal (hero copy) ---- */
 @keyframes site-rise{from{opacity:0;transform:translateY(calc(24 * var(--px)))}to{opacity:1;transform:none}}
@@ -44,14 +44,25 @@ html:not(.js) .pg-wa2__stage{--t1:1!important;--t2:1!important;--d:1!important;-
 /* ---- Home / What We Do: sticky stacked pillar cards (desktop board, pointer devices) ---- */
 @media (min-width:768px) and (hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){
   .pg-wwd__stage{display:contents}
-  .pg-wwd__card{position:sticky;top:calc(96 * var(--px) + var(--i) * 88 * var(--px));transition:background var(--duration-slow) var(--ease-out-expo)}
-  .pg-wwd__card[data-behind="1"]{background:var(--gray-100)}
-  .pg-wwd__card[data-behind="2"]{background:var(--gray-200)}
+  .pg-wwd__card{position:sticky;top:calc(96 * var(--px) + var(--i) * var(--stack-step))}
+  /* each card carries a bottom margin for the cards stacked below it, so the whole stack lets go at
+     the same moment and a later card never slides over the heading above it; the next card's
+     negative top margin cancels the gap in the flow. js/home.js adds --stack-fix, the difference
+     in height from the last card, because cards of different heights would let go at different times */
+  .pg-wwd__stack{--stack-step:calc(96 * var(--px));--stack-n:3}
+  .pg-wwd__card{margin-bottom:calc((var(--stack-n) - 1 - var(--i)) * var(--stack-step) + var(--stack-fix,0px))}
+  .pg-wwd__stage + .pg-wwd__stage .pg-wwd__card{margin-top:calc((var(--i) - var(--stack-n)) * var(--stack-step) - var(--stack-fix-prev,0px))}
+  .pg-wwd__card{--card-bg:var(--surface);background:var(--card-bg)}
+  .pg-wwd__card[data-behind="1"]{--card-bg:var(--flip-t1)}
+  .pg-wwd__card[data-behind="2"]{--card-bg:var(--flip-t2)}
   .pg-wwd__stack > .pg-wwd__stage:last-child .pg-wwd__card{border-bottom:1px solid var(--border)}
 
   /* What We Do page: capability cards pin and shrink to a strip 232 design px tall */
   .pg-cap{position:sticky;top:calc(var(--i) * 232 * var(--px))}
 }
+
+@property --card-bg{syntax:'<color>';inherits:false;initial-value:#ffffff}
+@media (prefers-reduced-motion:no-preference){.pg-wwd__card{transition:--card-bg var(--duration-slow) var(--ease-out-expo)}}
 
 /* ---- Home / Clients: sticky sector drum ---- */
 .pg-drum-run{--drum-steps:21;--drum-step:40vh}

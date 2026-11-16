@@ -1,9 +1,10 @@
 /* Change website: Home page behaviour.
-   1. Hero fades on scroll, Who We Are scroll sequence (outline draw, 3D logo, shader background)
+   1. Hero fades on scroll, Who We Are scroll sequence (3D logo dissolves in, shader background)
    2. What We Do stacked cards (tint of the cards behind)
    3. Clients sector drum
    4. Experiences logo card
-   5. Insights carousel */
+   5. Insights carousel
+   6. Scroll theme switch (sections invert between light and dark) */
 (function () {
   'use strict';
   var rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -29,14 +30,16 @@
       'float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+vec2(1.,1.)),f.x),f.y);}\n' +
       'float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=a*n(p);p*=2.03;a*=.5;}return v;}\n';
     var VS = 'attribute vec2 p;varying vec2 uv;void main(){uv=p*.5+.5;gl_Position=vec4(p,0.,1.);}';
-    /* 3D logo: cursor dissolve / distort */
-    var FS_GLASS = FS_HEAD + 'varying vec2 uv;uniform sampler2D t;uniform vec2 m;uniform float amt,time,asp;\n' + NOISE +
+    /* 3D logo: cursor dissolve / distort, plus the distort fade-in (rv 0 to 1) */
+    var FS_GLASS = FS_HEAD + 'varying vec2 uv;uniform sampler2D t;uniform vec2 m;uniform float amt,time,asp,rv;\n' + NOISE +
       'void main(){\n' +
       ' vec2 q=vec2(uv.x*asp,uv.y);vec2 mm=vec2(m.x*asp,m.y);\n' +
       ' float d=distance(q,mm);float infl=smoothstep(.36,0.,d)*amt;\n' +
       ' float nz=fbm(q*5.+vec2(time*.15,-time*.1));\n' +
       ' vec2 dir=normalize(q-mm+vec2(1e-4));\n' +
       ' vec2 off=(dir*(nz-.5)*.14+vec2(nz-.5,fbm(q*5.+7.)-.5)*.09)*infl;\n' +
+      ' float inv=1.-rv;\n' +
+      ' off+=vec2(fbm(q*3.+vec2(11.,time*.2))-.5,fbm(q*3.+vec2(23.,-time*.2))-.5)*.45*inv*inv;\n' +
       ' vec4 c=texture2D(t,uv-vec2(off.x/asp,off.y));\n' +
       ' vec3 col=1.-c.rgb;col=(col-.5)*1.1+.5;col*=1.05;col=clamp(col,0.,1.);\n' +
       ' float cut=infl*1.3-nz*.5;\n' +
@@ -44,7 +47,9 @@
       ' float edge=smoothstep(.06,.22,cut)*(1.-smoothstep(.22,.42,cut));\n' +
       ' float L=dot(col,vec3(.333));\n' +
       ' col=col*a+vec3(min(1.,L*3.2))*edge*.95;\n' +
-      ' gl_FragColor=vec4(col,max(a,edge*min(1.,L*6.)));\n}';
+      ' float rn=fbm(q*2.6+vec2(3.1,time*.06));\n' +
+      ' float ra=smoothstep(rn-.22,rn+.22,rv*1.5-.25);\n' +
+      ' gl_FragColor=vec4(col,max(a,edge*min(1.,L*6.)))*ra;\n}';
     /* dark shader background */
     var FS_BG = FS_HEAD + 'varying vec2 uv;uniform float time,asp;\n' + NOISE +
       'void main(){\n' +
@@ -67,7 +72,7 @@
       return pr;
     }
 
-    var mVal = 0, inView = false, hover = false, amt = 0, mx = .5, my = .5, tx = .5, ty = .5, raf = 0, lastBg = 0;
+    var mVal = 0, mTarget = 0, mLast = 0, REVEAL = 1.8, inView = false, hover = false, amt = 0, mx = .5, my = .5, tx = .5, ty = .5, raf = 0, lastBg = 0;
     var G = null, B = null;
 
     /* shader background (falls back to the CSS gradients if WebGL is unavailable) */
@@ -107,7 +112,7 @@
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-        G = { gl: gl, m: gl.getUniformLocation(pr, 'm'), a: gl.getUniformLocation(pr, 'amt'), t: gl.getUniformLocation(pr, 'time'), as: gl.getUniformLocation(pr, 'asp') };
+        G = { gl: gl, m: gl.getUniformLocation(pr, 'm'), a: gl.getUniformLocation(pr, 'amt'), rv: gl.getUniformLocation(pr, 'rv'), t: gl.getUniformLocation(pr, 'time'), as: gl.getUniformLocation(pr, 'asp') };
         glass.classList.add('is-gl');
         sizeGlass();
         drawGlass(0);
@@ -116,7 +121,7 @@
     function drawGlass(t) {
       if (!G) return; var gl = G.gl;
       gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.uniform2f(G.m, mx, my); gl.uniform1f(G.a, rm ? 0 : amt); gl.uniform1f(G.t, t);
+      gl.uniform2f(G.m, mx, my); gl.uniform1f(G.a, rm ? 0 : amt); gl.uniform1f(G.rv, mVal); gl.uniform1f(G.t, t);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
     if (img.complete) initGlass(); else img.addEventListener('load', initGlass);
@@ -124,12 +129,21 @@
     function frame(now) {
       raf = 0;
       var t = now / 1000;
+      /* distort fade-in: the reveal runs on a clock (REVEAL seconds) once the section is in view,
+         so it plays in full however fast the page is scrolled */
+      var dt = mLast ? Math.min(.1, t - mLast) : 0; mLast = t;
+      if (mVal !== mTarget) {
+        mVal = mTarget > mVal ? Math.min(mTarget, mVal + dt / REVEAL) : Math.max(mTarget, mVal - dt / (REVEAL * .5));
+        st.style.setProperty('--m', mVal.toFixed(4));
+        if (mVal > 0) initGlass();
+      }
       mx += (tx - mx) * .2; my += (ty - my) * .2;
       amt += ((hover ? 1 : 0) - amt) * (hover ? .08 : .03);
       if (inView && !rm && now - lastBg > 33) { lastBg = now; drawBg(t); }
-      if (mVal > .3) drawGlass(t);
+      if (mVal > 0) drawGlass(t);
       if (inView && !rm) raf = requestAnimationFrame(frame);
-      else if (mVal > .3 && (hover || amt > .004)) raf = requestAnimationFrame(frame);
+      else if (mVal > 0 && (hover || amt > .004)) raf = requestAnimationFrame(frame);
+      else mLast = 0;
     }
     function kick() { if (!raf) raf = requestAnimationFrame(frame); }
 
@@ -143,10 +157,13 @@
       var R = Math.max(1, wa.offsetHeight - vh);
       var p = clamp(-wa.getBoundingClientRect().top / R, 0, 1);
       var s = function (a, b) { return rm ? (p > a ? 1 : 0) : sm(a, b, p); };
-      var v = { t1: s(0, .1), d: s(.04, .52), dw: s(.10, .56), t2: s(.58, .72), m: s(.62, .88) };
+      /* the 3D logo starts to dissolve in once the stage fills most of the viewport, and resets
+         when the section has been scrolled back out of view */
+      var e = clamp(1 - wa.getBoundingClientRect().top / vh, 0, 1);
+      var v = { t1: s(.04, .16), t2: s(.5, .68) };
       for (var k in v) st.style.setProperty('--' + k, v[k].toFixed(4));
-      mVal = v.m;
-      if (mVal > .05) { initGlass(); if (G) drawGlass(0); }
+      if (e > .7) mTarget = 1; else if (e < .15) mTarget = 0;
+      if (rm && mVal !== mTarget) { mVal = mTarget; st.style.setProperty('--m', mVal); if (mVal > 0) { initGlass(); if (G) drawGlass(0); } }
       kick();
     }
     var sraf = 0;
@@ -189,10 +206,24 @@
         if (behind) c.setAttribute('data-behind', Math.min(2, behind)); else c.removeAttribute('data-behind');
       });
     }
+    /* cards of different heights would leave the stack at different moments, the last one sliding
+       over the headings above it. Pad each card's bottom margin by its height difference from the
+       last card so they all let go together (see the margins in css/site.css). */
+    function fit() {
+      var last = cards[cards.length - 1].offsetHeight;
+      cards.forEach(function (c, i) {
+        /* may be negative for a taller card, but never below the margin it is added to */
+        var step = (parseFloat(getComputedStyle(cards[1]).top) - parseFloat(getComputedStyle(cards[0]).top)) || 0;
+        var fix = i < cards.length - 1 ? Math.max(-(cards.length - 1 - i) * step, last - c.offsetHeight) : 0;
+        c.style.setProperty('--stack-fix', fix + 'px');
+        if (cards[i + 1]) cards[i + 1].style.setProperty('--stack-fix-prev', fix + 'px');
+      });
+    }
     var t = 0;
     window.addEventListener('scroll', function () { if (!t) t = requestAnimationFrame(function () { t = 0; update(); }); }, { passive: true });
-    window.addEventListener('resize', update);
-    update();
+    window.addEventListener('resize', function () { fit(); update(); });
+    window.addEventListener('load', fit);
+    fit(); update();
   })();
 
   /* =====================================================================
@@ -253,10 +284,29 @@
         card.appendChild(sp);
       }
     }
+    /* the highlight steps through the clients one after the other; hovering or focusing a name
+       takes over, and the sequence carries on from that name afterwards */
+    var cur = Math.max(0, names.indexOf($('.pg-exl__name.is-active', list))), held = false, seen = false, timer = 0;
+    var STEP = 2200;
+    function pick(n) { cur = names.indexOf(n); show(n); }
+    function tick() { if (held || !seen || document.hidden) return; cur = (cur + 1) % names.length; show(names[cur]); }
+    function hold(on) {
+      held = on;
+      /* restart the clock on release so the next step is a full beat after the last hover */
+      if (!on && timer) { clearInterval(timer); timer = setInterval(tick, STEP); }
+    }
     names.forEach(function (n) {
-      n.addEventListener('pointerenter', function () { show(n); });
-      n.addEventListener('focus', function () { show(n); });
+      n.addEventListener('pointerenter', function (e) { pick(n); if (e.pointerType === 'mouse') hold(true); });
+      n.addEventListener('focus', function () { pick(n); hold(true); });
+      n.addEventListener('blur', function () { hold(false); });
     });
+    list.addEventListener('pointerleave', function () { hold(false); });
+    if (!rm && names.length > 1) {
+      timer = setInterval(tick, STEP);
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (es) { seen = es[0].isIntersecting; }, { threshold: .25 }).observe(list);
+      } else { seen = true; }
+    }
   })();
 
   /* =====================================================================
@@ -317,5 +367,28 @@
     });
     window.addEventListener('resize', function () { go(idx); });
     go(0);
+  })();
+
+  /* =====================================================================
+     6. Scroll theme switch. Each [data-theme-stop] section names its own theme. The section under
+        the reading line (60% down the viewport) decides the theme, and every [data-flip] section
+        takes it, so the page inverts between light and dark as one surface. CSS does the transition.
+     ===================================================================== */
+  (function themeSwitch() {
+    var stops = $$('[data-theme-stop]'), flips = $$('[data-flip]');
+    if (!stops.length || !flips.length) return;
+    var cur = '';
+    function update() {
+      var line = window.innerHeight * .6, th = stops[0].getAttribute('data-theme-stop');
+      for (var i = 0; i < stops.length; i++) {
+        if (stops[i].getBoundingClientRect().top <= line) th = stops[i].getAttribute('data-theme-stop');
+      }
+      if (th === cur) return; cur = th;
+      flips.forEach(function (f) { f.setAttribute('data-theme', th); });
+    }
+    var t = 0;
+    window.addEventListener('scroll', function () { if (!t) t = requestAnimationFrame(function () { t = 0; update(); }); }, { passive: true });
+    window.addEventListener('resize', update);
+    update();
   })();
 })();
